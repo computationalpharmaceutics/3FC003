@@ -1,0 +1,59 @@
+; MARTINI (martini22) Coarse Grained topology file for "TYR-PRO-TYR"
+; Created by py version 2.4 
+; Using the following options:  -f ../2_Creating_coordinates/TYR-PRO-TYR_aa.pdb -name TYR-PRO-TYR -o TYR-PRO-TYR.top -x TYR-PRO-TYR.pdb -ff martini22 -ss EEE -nt
+; Sequence:
+; YPY
+; Secondary Structure:
+; EEE
+
+[ moleculetype ]
+; Name         Exclusions
+TYR-PRO-TYR       1
+
+[ atoms ]
+    1   Nda     1   TYR    BB     1  0.0000 ; E
+    2   SC4     1   TYR   SC1     2  0.0000 ; E
+    3   SC4     1   TYR   SC2     3  0.0000 ; E
+    4   SP1     1   TYR   SC3     4  0.0000 ; E
+    5    N0     2   PRO    BB     5  0.0000 ; E
+    6    C3     2   PRO   SC1     6  0.0000 ; E
+    7   Nda     3   TYR    BB     7  0.0000 ; E
+    8   SC4     3   TYR   SC1     8  0.0000 ; E
+    9   SC4     3   TYR   SC2     9  0.0000 ; E
+   10   SP1     3   TYR   SC3    10  0.0000 ; E
+
+[ bonds ]
+; Backbone bonds
+    1     5      1   0.35000  1250 ; TYR(E)-PRO(E)
+    5     7      1   0.35000  1250 ; PRO(E)-TYR(E)
+; Sidechain bonds
+    1     2      1   0.32000  5000 ; TYR
+    5     6      1   0.30000  7500 ; PRO
+    7     8      1   0.32000  5000 ; TYR
+
+[ constraints ]
+    2     3      1   0.27000 ; TYR
+    2     4      1   0.27000 ; TYR
+    3     4      1   0.27000 ; TYR
+    8     9      1   0.27000 ; TYR
+    8    10      1   0.27000 ; TYR
+    9    10      1   0.27000 ; TYR
+
+[ angles ]
+; Backbone angles
+    1     5     7      2    134    25 ; TYR(E)-PRO(E)-TYR(E)
+; Backbone-sidechain angles
+    2     1     5      2    100    25 ; TYR(E)-PRO(E) SBB
+    1     5     6      2    100    25 ; TYR(E)-PRO(E) SBB
+    5     7     8      2    100    25 ; PRO(E)-TYR(E) SBB
+; Sidechain angles
+    1     2     3      2    150    50 ; TYR
+    1     2     4      2    150    50 ; TYR
+    7     8     9      2    150    50 ; TYR
+    7     8    10      2    150    50 ; TYR
+
+[ dihedrals ]
+; Backbone dihedrals
+; Sidechain improper dihedrals
+    1     3     4     2      2      0    50 ; TYR
+    7     9    10     8      2      0    50 ; TYR

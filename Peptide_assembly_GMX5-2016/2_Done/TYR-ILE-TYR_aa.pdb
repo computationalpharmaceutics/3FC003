@@ -1,0 +1,66 @@
+REMARK original generated coordinate pdb file
+ATOM      1  N   TYR     1      -1.195   0.201  -0.206  1.00  0.00      PEP  N
+ATOM      2  HT1 TYR     1      -1.715   0.679  -0.914  0.00  0.00      PEP   
+ATOM      3  HT2 TYR     1      -1.377   0.613   0.687  0.00  0.00      PEP   
+ATOM      4  HT3 TYR     1      -1.446  -0.767  -0.193  0.00  0.00      PEP   
+ATOM      5  CA  TYR     1       0.230   0.318  -0.502  1.00  0.00      PEP  C
+ATOM      6  HA  TYR     1       0.394  -0.195  -1.442  0.00  0.00      PEP   
+ATOM      7  CB  TYR     1       0.599   1.829  -0.628  0.00  0.00      PEP   
+ATOM      8  HB1 TYR     1       0.018   2.277  -1.464  0.00  0.00      PEP   
+ATOM      9  HB2 TYR     1       0.323   2.380   0.297  0.00  0.00      PEP   
+ATOM     10  CG  TYR     1       2.062   2.054  -0.935  0.00  0.00      PEP   
+ATOM     11  CD1 TYR     1       2.509   2.121  -2.267  0.00  0.00      PEP   
+ATOM     12  HD1 TYR     1       1.795   2.067  -3.077  0.00  0.00      PEP   
+ATOM     13  CE1 TYR     1       3.878   2.236  -2.551  0.00  0.00      PEP   
+ATOM     14  HE1 TYR     1       4.225   2.278  -3.573  0.00  0.00      PEP   
+ATOM     15  CZ  TYR     1       4.808   2.288  -1.509  0.00  0.00      PEP   
+ATOM     16  OH  TYR     1       6.180   2.371  -1.804  0.00  0.00      PEP   
+ATOM     17  HH  TYR     1       6.648   2.470  -0.972  0.00  0.00      PEP   
+ATOM     18  CD2 TYR     1       3.006   2.126   0.105  0.00  0.00      PEP   
+ATOM     19  HD2 TYR     1       2.683   2.056   1.134  0.00  0.00      PEP   
+ATOM     20  CE2 TYR     1       4.374   2.237  -0.181  0.00  0.00      PEP   
+ATOM     21  HE2 TYR     1       5.091   2.261   0.627  0.00  0.00      PEP   
+ATOM     22  C   TYR     1       1.059  -0.390   0.542  1.00  0.00      PEP  C
+ATOM     23  O   TYR     1       0.833  -0.270   1.749  1.00  0.00      PEP  O
+ATOM     24  N   ILE     2       2.171  -1.248   0.107  1.00  0.00      PEP  N
+ATOM     25  HN  ILE     2       2.610  -1.553  -0.735  0.00  0.00      PEP   
+ATOM     26  CA  ILE     2       2.773  -1.785   1.324  1.00  0.00      PEP  C
+ATOM     27  HA  ILE     2       2.516  -1.099   2.121  0.00  0.00      PEP   
+ATOM     28  CB  ILE     2       2.174  -3.199   1.644  0.00  0.00      PEP   
+ATOM     29  HB  ILE     2       1.096  -3.001   1.872  0.00  0.00      PEP   
+ATOM     30  CG2 ILE     2       2.188  -4.171   0.443  0.00  0.00      PEP   
+ATOM     31 HG21 ILE     2       1.616  -5.092   0.680  0.00  0.00      PEP   
+ATOM     32 HG22 ILE     2       1.721  -3.705  -0.450  0.00  0.00      PEP   
+ATOM     33 HG23 ILE     2       3.227  -4.465   0.182  0.00  0.00      PEP   
+ATOM     34  CG1 ILE     2       2.759  -3.846   2.925  0.00  0.00      PEP   
+ATOM     35 HG11 ILE     2       3.865  -3.933   2.831  0.00  0.00      PEP   
+ATOM     36 HG12 ILE     2       2.554  -3.178   3.792  0.00  0.00      PEP   
+ATOM     37  CD  ILE     2       2.179  -5.233   3.248  0.00  0.00      PEP   
+ATOM     38  HD1 ILE     2       2.597  -5.612   4.206  0.00  0.00      PEP   
+ATOM     39  HD2 ILE     2       1.074  -5.182   3.347  0.00  0.00      PEP   
+ATOM     40  HD3 ILE     2       2.429  -5.965   2.451  0.00  0.00      PEP   
+ATOM     41  C   ILE     2       4.279  -1.793   1.224  1.00  0.00      PEP  C
+ATOM     42  O   ILE     2       4.866  -2.186   0.213  1.00  0.00      PEP  O
+ATOM     43  N   TYR     3       5.072  -1.316   2.367  1.00  0.00      PEP  N
+ATOM     44  HN  TYR     3       4.929  -0.950   3.285  0.00  0.00      PEP   
+ATOM     45  CA  TYR     3       6.472  -1.443   1.976  1.00  0.00      PEP  C
+ATOM     46  HA  TYR     3       6.508  -2.188   1.190  0.00  0.00      PEP   
+ATOM     47  CB  TYR     3       6.978  -0.064   1.449  0.00  0.00      PEP   
+ATOM     48  HB1 TYR     3       6.378   0.228   0.559  0.00  0.00      PEP   
+ATOM     49  HB2 TYR     3       6.833   0.727   2.216  0.00  0.00      PEP   
+ATOM     50  CG  TYR     3       8.426  -0.093   1.017  0.00  0.00      PEP   
+ATOM     51  CD1 TYR     3       8.768  -0.411  -0.310  0.00  0.00      PEP   
+ATOM     52  HD1 TYR     3       7.989  -0.582  -1.040  0.00  0.00      PEP   
+ATOM     53  CE1 TYR     3      10.114  -0.531  -0.686  0.00  0.00      PEP   
+ATOM     54  HE1 TYR     3      10.380  -0.783  -1.701  0.00  0.00      PEP   
+ATOM     55  CZ  TYR     3      11.126  -0.330   0.257  0.00  0.00      PEP   
+ATOM     56  OH  TYR     3      12.472  -0.483  -0.121  0.00  0.00      PEP   
+ATOM     57  HH  TYR     3      13.013  -0.236   0.632  0.00  0.00      PEP   
+ATOM     58  CD2 TYR     3       9.454   0.124   1.953  0.00  0.00      PEP   
+ATOM     59  HD2 TYR     3       9.209   0.349   2.981  0.00  0.00      PEP   
+ATOM     60  CE2 TYR     3      10.799   0.001   1.575  0.00  0.00      PEP   
+ATOM     61  HE2 TYR     3      11.576   0.141   2.311  0.00  0.00      PEP   
+ATOM     62  C   TYR     3       7.309  -1.962   3.120  1.00  0.00      PEP  C
+ATOM     63  OT1 TYR     3       6.719  -2.111   3.914  0.00  0.00      PEP   
+ATOM     64  OT2 TYR     3       8.260  -2.037   2.820  0.00  0.00      PEP   
+END

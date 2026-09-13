@@ -1,6 +1,6 @@
 #!/bin/bash
 
-vmd='vmd'
+vmd='/content/vmd/bin/vmd'
 
 declare -a aminoacid1=("TYR")
 declare -a aminoacid2=("ALA" "CYS" "ASP" "GLU" "PHE" "GLY" "HIS" "ILE" "LYS" "LEU" "MET" "ASN" "PRO" "GLN" "ARG" "SER" "THR" "VAL" "TRP" "TYR")

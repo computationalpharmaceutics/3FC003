@@ -1,0 +1,15 @@
+#include "martini_v2.2.itp"
+#include "martini_v2.0_ions.itp"
+    
+
+  
+#include "TYR-HIS-TYR.itp"
+    
+[ system ]
+; name
+Martini system from ../2_Creating_coordinates/TYR-HIS-TYR_aa.pdb
+    
+[ molecules ]
+; name        number
+TYR-HIS-TYR 	 100
+W       3196

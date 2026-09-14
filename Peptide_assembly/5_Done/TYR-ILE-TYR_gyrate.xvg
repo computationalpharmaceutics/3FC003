@@ -1,0 +1,28 @@
+# This file was created Wed Aug  2 10:53:47 2017
+# Created by:
+#                      :-) GROMACS - gmx gyrate, 2016.3 (-:
+# 
+# Executable:   /usr/local/gromacs-2016.3/bin/gmx
+# Data prefix:  /usr/local/gromacs-2016.3
+# Working dir:  /home/pimfrederix/Documents/Peptide_assembly_5.1_toplay/5_Analysis
+# Command line:
+#   gmx gyrate -f TYR-ILE-TYR_princ.gro -s TYR-ILE-TYR_maxclust.tpr -moi -o TYR-ILE-TYR_gyrate.xvg
+# gmx gyrate is part of G R O M A C S:
+#
+# Getting the Right Output Means no Artefacts in Calculating Stuff
+#
+@    title "Moments of inertia (total and around axes)"
+@    xaxis  label "Time (ps)"
+@    yaxis  label "I (a.m.u. nm\S2\N)"
+@TYPE xy
+@ view 0.15, 0.15, 0.75, 0.85
+@ legend on
+@ legend box on
+@ legend loctype view
+@ legend 0.78, 0.8
+@ legend length 2
+@ s0 legend "Itot"
+@ s1 legend "I1"
+@ s2 legend "I2"
+@ s3 legend "I3"
+         0      532272     84706.4      360723      382122

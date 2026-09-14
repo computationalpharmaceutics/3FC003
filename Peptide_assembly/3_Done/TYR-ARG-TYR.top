@@ -1,0 +1,16 @@
+#include "martini_v2.2.itp"
+#include "martini_v2.0_ions.itp"
+    
+
+  
+#include "TYR-ARG-TYR.itp"
+    
+[ system ]
+; name
+Martini system from ../2_Creating_coordinates/TYR-ARG-TYR_aa.pdb
+    
+[ molecules ]
+; name        number
+TYR-ARG-TYR 	 100
+W           3040
+CL-              100

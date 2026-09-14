@@ -60,3 +60,64 @@ def minimize_peptides(coord_dir: Union[str, Path]) -> list[Path]:
               f"{after_kj_mol:.1f} kJ/mol")
 
     return generated
+
+
+def show_peptide(
+    peptide: str,
+    style: str,
+    coord_dir: Union[str, Path],
+) -> None:
+    """Display a minimized peptide in an interactive py3Dmol viewer."""
+    pdb_file = Path(coord_dir) / f"{peptide}_aa.pdb"
+    if not pdb_file.is_file():
+        raise FileNotFoundError(pdb_file)
+
+    styles = {
+        "Stick": {"stick": {"colorscheme": "Jmol"}},
+        "Ball and stick": {
+            "stick": {"colorscheme": "Jmol"},
+            "sphere": {"scale": 0.3, "colorscheme": "Jmol"},
+        },
+        "Sphere": {"sphere": {"colorscheme": "Jmol"}},
+    }
+    if style not in styles:
+        raise ValueError(f"Unknown style: {style!r}. Choose from {tuple(styles)}.")
+
+    view = py3Dmol.view(width=800, height=500)
+    view.addModel(pdb_file.read_text(), "pdb")
+    view.setStyle({}, styles[style])
+    view.setBackgroundColor("white")
+    view.zoomTo()
+    view.show()
+
+
+
+
+def show_peptide_widget(generated, coord_dir: Union[str, Path]):
+    """Create peptide and rendering-style controls for ``show_peptide``."""
+    from ipywidgets import Dropdown, fixed, interact
+
+    peptide_names = [
+        path.name.removesuffix("_aa.pdb") for path in generated
+    ]
+    if not peptide_names:
+        raise ValueError("No generated peptide files were provided.")
+
+    default_peptide = (
+        "TYR-VAL-TYR" if "TYR-VAL-TYR" in peptide_names else peptide_names[0]
+    )
+
+    return interact(
+        show_peptide,
+        peptide=Dropdown(
+            options=peptide_names,
+            value=default_peptide,
+            description="Peptide:",
+        ),
+        style=Dropdown(
+            options=["Stick", "Ball and stick", "Sphere"],
+            value="Ball and stick",
+            description="Style:",
+        ),
+        coord_dir=fixed(Path(coord_dir)),
+    )

@@ -1,5 +1,6 @@
 """OpenMM helpers for the peptide self-assembly notebook."""
 
+import os
 from pathlib import Path
 from typing import Union
 
@@ -8,6 +9,8 @@ from IPython.display import HTML, display
 import re
 
 import py3Dmol
+import subprocess
+
 
 from openmm import Platform, VerletIntegrator, unit
 from openmm.app import ForceField, NoCutoff, PDBFile, Simulation
@@ -647,3 +650,35 @@ def update_and_check_topology(peptide, n_peptides, bead_table, top_file, structu
         f'NA+={final_counts["NA+"]}, CL-={final_counts["CL-"]}'
     )
     return final_counts
+
+def setup_all_tripeptides(cg_dir, python2, script_name ):
+    """Run setup_tripeptides.sh and print every updated topology file."""
+    cg_dir = Path(cg_dir)
+    python2 = Path(python2)
+    setup_script = cg_dir / script_name
+
+    assert setup_script.is_file(), f'Script not found: {setup_script}'
+    assert python2.is_file(), f'Python 2.7 interpreter not found: {python2}'
+
+    batch_env = os.environ.copy()
+    batch_env['PATH'] = f'{python2.parent}:{batch_env["PATH"]}'
+
+    print(f'Running {setup_script.name} with {python2}')
+    subprocess.run(
+        ['bash', '-e', setup_script.name],
+        cwd=cg_dir,
+        env=batch_env,
+        check=True,
+    )
+
+    updated_topology_files = sorted(cg_dir.glob('TYR-*-TYR.top'))
+    assert updated_topology_files, f'No updated topology files found in {cg_dir}'
+
+    print(f'\nUpdated topology files ({len(updated_topology_files)}):')
+    for topology_file in updated_topology_files:
+        print('\n' + '=' * 80)
+        print(topology_file.name)
+        print('=' * 80)
+        print(topology_file.read_text().rstrip())
+
+    return updated_topology_files

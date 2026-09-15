@@ -3,6 +3,8 @@
 from pathlib import Path
 from typing import Union
 
+import py3Dmol
+
 from openmm import Platform, VerletIntegrator, unit
 from openmm.app import ForceField, NoCutoff, PDBFile, Simulation
 

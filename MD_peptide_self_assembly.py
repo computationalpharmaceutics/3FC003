@@ -572,3 +572,78 @@ def visualize_counterions(water_file, bead_table, peptide):
     )
     view.show()
     return view
+
+def update_and_check_topology(peptide, n_peptides, bead_table, top_file, structure_file):
+    """Synchronize a Martini topology with the final solvated structure."""
+    top_file = Path(top_file)
+    structure_file = Path(structure_file)
+
+    gro_lines = structure_file.read_text().splitlines()
+    final_counts = {
+        name: sum(line[5:10].strip() == name for line in gro_lines[2:-1])
+        for name in ('W', 'NA+', 'CL-')
+    }
+    ion_count = final_counts['NA+'] + final_counts['CL-']
+    topology_before = top_file.read_text()
+
+    print(f'Topology before changes ({top_file.name}):\n')
+    print(topology_before)
+
+    topology_after = re.sub(
+        rf'(?m)^{re.escape(peptide)}\s+\d+\s*$',
+        f'{peptide:<20} {n_peptides}',
+        topology_before,
+    )
+
+    if ion_count:
+        # 1. Include the Martini 2 ion definitions below the main force-field include.
+        main_include = '#include "martini_v2.2.itp"'
+        ion_include = '#include "martini_v2.0_ions.itp"'
+        assert main_include in topology_after, (
+            f'Main Martini include not found in {top_file.name}'
+        )
+        if ion_include not in topology_after:
+            topology_after = topology_after.replace(
+                main_include, main_include + '\n' + ion_include, 1
+            )
+
+        # 2. Use the solvent and ion counts from the final .gro file.
+        topology_after = re.sub(
+            r'(?m)^(W|NA\+|CL-)\s+\d+\s*$\n?', '', topology_after
+        )
+        molecule_lines = [f'W                   {final_counts["W"]}']
+        for ion in ('NA+', 'CL-'):
+            if final_counts[ion]:
+                molecule_lines.append(f'{ion:<20}{final_counts[ion]}')
+        topology_after = (
+            topology_after.rstrip() + '\n' + '\n'.join(molecule_lines) + '\n'
+        )
+
+    if topology_after != topology_before:
+        top_file.write_text(topology_after)
+        print(f'Updated {top_file.name}.')
+    else:
+        print(f'{top_file.name} already matches the final structure.')
+
+    print(f'\nTopology after changes ({top_file.name}):\n')
+    print(topology_after)
+
+    # Check the final coordinate and topology files.
+    expected_beads = n_peptides * len(bead_table) + sum(final_counts.values())
+    assert int(gro_lines[1]) == expected_beads
+    assert f'{peptide:<20} {n_peptides}' in topology_after
+    assert f'W                   {final_counts["W"]}' in topology_after
+    if ion_count:
+        assert ion_include in topology_after
+        assert topology_after.index(ion_include) > topology_after.index(main_include)
+    for ion in ('NA+', 'CL-'):
+        if final_counts[ion]:
+            assert f'{ion:<20}{final_counts[ion]}' in topology_after
+
+    print(f'{structure_file.name}: {int(gro_lines[1])} coarse-grained beads')
+    print(f'Box vectors (nm): {gro_lines[-1].strip()}')
+    print(
+        f'Molecule counts: W={final_counts["W"]}, '
+        f'NA+={final_counts["NA+"]}, CL-={final_counts["CL-"]}'
+    )
+    return final_counts

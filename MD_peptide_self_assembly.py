@@ -362,3 +362,213 @@ def show_peptide_comparison(peptide, cg_dir):
     view.show()
 
     return bead_table
+
+def visualize_inserted_peptides(box_file, bead_table, peptide, n_peptides):
+    """Display the inserted peptides using the Martini bead-class colors."""
+    gro_text = box_file.read_text()
+    box_nm = [float(value) for value in gro_text.splitlines()[-1].split()[:3]]
+    lx, ly, lz = [10.0 * value for value in box_nm]  # py3Dmol uses angstroms
+
+    martini_colors = {
+        'charged': 'red',
+        'polar': 'orange',
+        'intermediate': 'blue',
+        'apolar': 'gray',
+    }
+
+    view = py3Dmol.view(width=800, height=600)
+    view.addModel(gro_text, 'gro')
+    view.setStyle({}, {
+        'stick': {'radius': 0.12, 'color': 'gray'},
+        'sphere': {'scale': 0.25, 'color': 'gray'},
+    })
+
+    # Apply the class color from bead_table to every copy of each bead.
+    for _, bead in bead_table.iterrows():
+        residue_name = bead['residue'].split()[0]
+        color = martini_colors[bead['class']]
+        view.setStyle(
+            {'resn': residue_name, 'atom': bead['bead']},
+            {
+                'stick': {'radius': 0.12, 'color': color},
+                'sphere': {'scale': 0.25, 'color': color},
+            },
+        )
+
+    # Draw the 12 edges of the periodic box.
+    corners = [
+        (0, 0, 0), (lx, 0, 0), (0, ly, 0), (lx, ly, 0),
+        (0, 0, lz), (lx, 0, lz), (0, ly, lz), (lx, ly, lz),
+    ]
+    edges = [
+        (0, 1), (0, 2), (1, 3), (2, 3),
+        (4, 5), (4, 6), (5, 7), (6, 7),
+        (0, 4), (1, 5), (2, 6), (3, 7),
+    ]
+    for start, end in edges:
+        x1, y1, z1 = corners[start]
+        x2, y2, z2 = corners[end]
+        view.addLine({
+            'start': {'x': x1, 'y': y1, 'z': z1},
+            'end': {'x': x2, 'y': y2, 'z': z2},
+            'color': 'black',
+            'linewidth': 2,
+        })
+
+    view.setBackgroundColor('white')
+    view.zoomTo()
+    print(
+        f'{n_peptides} {peptide} molecules in a '
+        f'{box_nm[0]:g} x {box_nm[1]:g} x {box_nm[2]:g} nm box'
+    )
+    print('Color key: charged=red, polar=orange, intermediate=blue, apolar=gray.')
+    view.show()
+    return view
+
+def visualize_solvated_system(water_file, bead_table):
+    """Display Martini water and peptides in the solvated simulation box."""
+    solvated_text = water_file.read_text()
+    solvated_lines = solvated_text.splitlines()
+    water_beads = sum(
+        line[5:10].strip() == 'W' for line in solvated_lines[2:-1]
+    )
+    box_nm = [float(value) for value in solvated_lines[-1].split()[:3]]
+    lx, ly, lz = [10.0 * value for value in box_nm]  # py3Dmol uses angstroms
+
+    martini_colors = {
+        'charged': 'red',
+        'polar': 'orange',
+        'intermediate': 'blue',
+        'apolar': 'gray',
+    }
+
+    view = py3Dmol.view(width=800, height=600)
+    view.addModel(solvated_text, 'gro')
+    view.setStyle({}, {})
+
+    # Water beads are small and translucent so the peptides remain visible.
+    view.setStyle(
+        {'resn': 'W'},
+        {'sphere': {'scale': 0.15, 'color': 'cyan', 'opacity': 0.35}},
+    )
+
+    # Keep the peptide beads in the same Martini class colors as bead_table.
+    for _, bead in bead_table.iterrows():
+        residue_name = bead['residue'].split()[0]
+        color = martini_colors[bead['class']]
+        view.setStyle(
+            {'resn': residue_name, 'atom': bead['bead']},
+            {
+                'stick': {'radius': 0.12, 'color': color},
+                'sphere': {'scale': 0.25, 'color': color},
+            },
+        )
+
+    # Draw the 12 edges of the periodic box.
+    corners = [
+        (0, 0, 0), (lx, 0, 0), (0, ly, 0), (lx, ly, 0),
+        (0, 0, lz), (lx, 0, lz), (0, ly, lz), (lx, ly, lz),
+    ]
+    edges = [
+        (0, 1), (0, 2), (1, 3), (2, 3),
+        (4, 5), (4, 6), (5, 7), (6, 7),
+        (0, 4), (1, 5), (2, 6), (3, 7),
+    ]
+    for start, end in edges:
+        x1, y1, z1 = corners[start]
+        x2, y2, z2 = corners[end]
+        view.addLine({
+            'start': {'x': x1, 'y': y1, 'z': z1},
+            'end': {'x': x2, 'y': y2, 'z': z2},
+            'color': 'black',
+            'linewidth': 2,
+        })
+
+    view.setBackgroundColor('white')
+    view.zoomTo()
+    print(f'Added {water_beads} Martini water beads (cyan).')
+    print(
+        'Peptides retain the Martini class colors: '
+        'charged=red, polar=orange, intermediate=blue, apolar=gray.'
+    )
+    view.show()
+    return view
+
+def visualize_counterions(water_file, bead_table, peptide):
+    """Highlight counterions in the neutralized Martini system, when present."""
+    neutralized_text = water_file.read_text()
+    neutralized_lines = neutralized_text.splitlines()
+    ion_counts = {
+        ion: sum(line[5:10].strip() == ion for line in neutralized_lines[2:-1])
+        for ion in ('NA+', 'CL-')
+    }
+
+    if sum(ion_counts.values()) == 0:
+        print(f'No counterions were required for {peptide}; the system was already neutral.')
+        return None
+
+    box_nm = [float(value) for value in neutralized_lines[-1].split()[:3]]
+    lx, ly, lz = [10.0 * value for value in box_nm]  # py3Dmol uses angstroms
+    martini_colors = {
+        'charged': 'red',
+        'polar': 'orange',
+        'intermediate': 'blue',
+        'apolar': 'gray',
+    }
+
+    view = py3Dmol.view(width=800, height=600)
+    view.addModel(neutralized_text, 'gro')
+    view.setStyle({}, {})
+
+    # Keep water small and translucent while retaining the Martini peptide colors.
+    view.setStyle(
+        {'resn': 'W'},
+        {'sphere': {'scale': 0.10, 'color': 'cyan', 'opacity': 0.12}},
+    )
+    for _, bead in bead_table.iterrows():
+        residue_name = bead['residue'].split()[0]
+        color = martini_colors[bead['class']]
+        view.setStyle(
+            {'resn': residue_name, 'atom': bead['bead']},
+            {
+                'stick': {'radius': 0.08, 'color': color},
+                'sphere': {'scale': 0.18, 'color': color},
+            },
+        )
+
+    # Make counterions large and easy to distinguish.
+    ion_colors = {'NA+': 'purple', 'CL-': 'green'}
+    for ion, color in ion_colors.items():
+        view.setStyle(
+            {'resn': ion},
+            {'sphere': {'scale': 0.75, 'color': color}},
+        )
+
+    # Draw the 12 edges of the periodic box.
+    corners = [
+        (0, 0, 0), (lx, 0, 0), (0, ly, 0), (lx, ly, 0),
+        (0, 0, lz), (lx, 0, lz), (0, ly, lz), (lx, ly, lz),
+    ]
+    edges = [
+        (0, 1), (0, 2), (1, 3), (2, 3),
+        (4, 5), (4, 6), (5, 7), (6, 7),
+        (0, 4), (1, 5), (2, 6), (3, 7),
+    ]
+    for start, end in edges:
+        x1, y1, z1 = corners[start]
+        x2, y2, z2 = corners[end]
+        view.addLine({
+            'start': {'x': x1, 'y': y1, 'z': z1},
+            'end': {'x': x2, 'y': y2, 'z': z2},
+            'color': 'black',
+            'linewidth': 2,
+        })
+
+    view.setBackgroundColor('white')
+    view.zoomTo()
+    print(
+        f"Counterions added: {ion_counts['NA+']} NA+ (purple), "
+        f"{ion_counts['CL-']} CL- (green)."
+    )
+    view.show()
+    return view

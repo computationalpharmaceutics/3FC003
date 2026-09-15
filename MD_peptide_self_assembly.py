@@ -3,6 +3,10 @@
 from pathlib import Path
 from typing import Union
 
+import pandas as pd
+from IPython.display import HTML, display
+
+
 import py3Dmol
 
 from openmm import Platform, VerletIntegrator, unit
@@ -123,3 +127,238 @@ def show_peptide_widget(generated, coord_dir: Union[str, Path]):
         ),
         coord_dir=fixed(Path(coord_dir)),
     )
+
+
+
+def show_peptide_comparison(peptide, cg_dir):
+    """Compare an all-atom peptide with its Martini representation."""
+
+    cg_dir = Path(cg_dir)
+
+    aa_file = (
+        cg_dir.parent
+        / "2_Creating_coordinates"
+        / f"{peptide}_aa.pdb"
+    )
+    cg_file = cg_dir / f"{peptide}.pdb"
+    itp_file = cg_dir / f"{peptide}.itp"
+
+    assert aa_file.is_file(), f"File not found: {aa_file}"
+    assert cg_file.is_file(), f"File not found: {cg_file}"
+    assert itp_file.is_file(), f"File not found: {itp_file}"
+
+    itp_text = itp_file.read_text()
+
+    # Read the coarse-grained coordinates from the PDB file.
+    coordinates = {}
+
+    for line in cg_file.read_text().splitlines():
+        if line.startswith(("ATOM  ", "HETATM")):
+            serial = int(line[6:11])
+
+            coordinates[serial] = tuple(
+                float(line[start:end])
+                for start, end in (
+                    (30, 38),
+                    (38, 46),
+                    (46, 54),
+                )
+            )
+
+    family_names = {
+        "Q": "charged",
+        "P": "polar",
+        "N": "intermediate",
+        "C": "apolar",
+    }
+
+    family_colors = {
+        "Q": "#D62728",
+        "P": "#FF7F0E",
+        "N": "#4169E1",
+        "C": "#8A8A8A",
+    }
+
+    def bead_family(bead_type):
+        core = bead_type[1:] if bead_type.startswith("S") else bead_type
+        core = core[1:] if core.startswith("A") else core
+        return core[0]
+
+    def polarity_label(bead_type):
+        core = bead_type[1:] if bead_type.startswith("S") else bead_type
+        core = core[1:] if core.startswith("A") else core
+        subtype = core[1:]
+
+        h_bond = {
+            "da": "donor + acceptor",
+            "d": "donor",
+            "a": "acceptor",
+            "0": "none",
+        }
+
+        return h_bond.get(subtype, f"level {subtype}")
+
+    # Read the bead information and connectivity from the topology.
+    rows = []
+    bond_pairs = []
+    section = None
+
+    for line in itp_text.splitlines():
+        stripped = line.strip()
+
+        if stripped.startswith("["):
+            section = stripped.strip("[] ").lower()
+            continue
+
+        fields = line.split(";", 1)[0].split()
+
+        if section == "atoms" and fields and fields[0].isdigit():
+            index = int(fields[0])
+            bead_type = fields[1]
+            family = bead_family(bead_type)
+
+            rows.append({
+                "index": index,
+                "residue": f"{fields[3]} {fields[2]}",
+                "bead": fields[4],
+                "Martini type": bead_type,
+                "class": family_names[family],
+                "polarity / H-bonding": polarity_label(bead_type),
+                "charge (e)": float(fields[6]),
+            })
+
+        elif (
+            section in ("bonds", "constraints")
+            and len(fields) >= 2
+            and fields[0].isdigit()
+        ):
+            bond_pairs.append((
+                int(fields[0]),
+                int(fields[1]),
+            ))
+
+    bead_table = (
+        pd.DataFrame(rows)
+        .sort_values("index")
+        .reset_index(drop=True)
+    )
+
+    # Display only the requested columns.
+    table_columns = [
+        "residue",
+        "bead",
+        "Martini type",
+        "class",
+        "polarity / H-bonding",
+    ]
+
+    display(bead_table[table_columns].style.hide(axis="index"))
+
+    print(
+        "Color key: charged=red, polar=orange, "
+        "intermediate=blue, apolar=gray."
+    )
+    print(
+        "Connectivity:",
+        ", ".join(f"{first}-{second}" for first, second in bond_pairs),
+    )
+
+    # Add titles above the molecular viewers.
+    display(HTML(
+        f"""
+        <div style="display:flex; width:1000px; text-align:center">
+            <b style="width:50%">All-atom: {peptide}</b>
+            <b style="width:50%">Martini 2.2 beads</b>
+        </div>
+        """
+    ))
+
+    # Create two linked molecular viewers.
+    view = py3Dmol.view(
+        width=1000,
+        height=520,
+        viewergrid=(1, 2),
+        linked=True,
+    )
+
+    # All-atom structure.
+    view.addModel(
+        aa_file.read_text(),
+        "pdb",
+        viewer=(0, 0),
+    )
+
+    view.setStyle(
+        {},
+        {
+            "stick": {"colorscheme": "Jmol"},
+            "sphere": {
+                "scale": 0.25,
+                "colorscheme": "Jmol",
+            },
+        },
+        viewer=(0, 0),
+    )
+
+    # Martini coarse-grained structure.
+    view.addModel(
+        cg_file.read_text(),
+        "pdb",
+        viewer=(0, 1),
+    )
+
+    for row in rows:
+        serial = row["index"]
+        bead_type = row["Martini type"]
+        color = family_colors[bead_family(bead_type)]
+
+        view.setStyle(
+            {"serial": serial},
+            {
+                "sphere": {
+                    "color": color,
+                    "radius": 1.1,
+                }
+            },
+            viewer=(0, 1),
+        )
+
+        x, y, z = coordinates[serial]
+
+        view.addLabel(
+            (
+                f"{row['bead']} | {bead_type} | "
+                f"q={row['charge (e)']:+.0f}"
+            ),
+            {
+                "position": {"x": x, "y": y, "z": z},
+                "fontSize": 11,
+                "fontColor": "black",
+                "backgroundColor": "white",
+                "backgroundOpacity": 0.75,
+                "inFront": True,
+            },
+            viewer=(0, 1),
+        )
+
+    # Draw connections between Martini beads.
+    for first, second in bond_pairs:
+        start = coordinates[first]
+        end = coordinates[second]
+
+        view.addCylinder(
+            {
+                "start": dict(zip(("x", "y", "z"), start)),
+                "end": dict(zip(("x", "y", "z"), end)),
+                "radius": 0.12,
+                "color": "#555555",
+                "opacity": 0.75,
+            },
+            viewer=(0, 1),
+        )
+
+    view.setBackgroundColor("white")
+    view.zoomTo()
+    view.show()
+
+    return bead_table

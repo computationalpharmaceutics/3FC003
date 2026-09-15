@@ -11,6 +11,7 @@ import re
 import py3Dmol
 import subprocess
 
+import ipywidgets as widgets
 
 from openmm import Platform, VerletIntegrator, unit
 from openmm.app import ForceField, NoCutoff, PDBFile, Simulation
@@ -682,3 +683,311 @@ def setup_all_tripeptides(cg_dir, python2, script_name ):
         print(topology_file.read_text().rstrip())
 
     return updated_topology_files
+
+def show_simulation_trajectory(
+    peptide,
+    simulation_dir,
+    bead_table,
+    simulation_name=None,
+    frame_stride=1,
+    show_water=False,
+    show_ions=True,
+    frame_interval=100,
+    width=900,
+    height=600,
+):
+    """Display a GROMACS trajectory with VMD-like playback and controls."""
+    simulation_dir = Path(simulation_dir)
+    simulation_name = simulation_name or f'{peptide}_eq'
+    frame_stride = int(frame_stride)
+    assert frame_stride > 0, 'frame_stride must be a positive integer.'
+
+    tpr_file = simulation_dir / f'{simulation_name}.tpr'
+    trajectory_file = simulation_dir / f'{simulation_name}.xtc'
+    viewer_file = simulation_dir / f'{simulation_name}_system.pdb'
+
+    assert tpr_file.is_file(), f'Run-input file not found: {tpr_file}'
+    assert trajectory_file.is_file(), f'Trajectory file not found: {trajectory_file}'
+
+    command = [
+        'gmx', 'trjconv',
+        '-s', tpr_file.name,
+        '-f', trajectory_file.name,
+        '-o', viewer_file.name,
+        '-pbc', 'mol',
+        '-center',
+        '-ur', 'compact',
+        '-skip', str(frame_stride),
+    ]
+    print('Running:', ' '.join(command), flush=True)
+    subprocess.run(
+        command,
+        input='Protein\nSystem\n',
+        text=True,
+        cwd=simulation_dir,
+        check=True,
+    )
+
+    trajectory_text = viewer_file.read_text()
+    number_of_frames = trajectory_text.count('MODEL') or 1
+    first_frame = trajectory_text.split('ENDMDL', 1)[0]
+    atom_lines = [
+        line for line in first_frame.splitlines()
+        if line.startswith(('ATOM', 'HETATM'))
+    ]
+    atom_names = [line[12:16].strip() for line in atom_lines]
+    water_count = atom_names.count('W')
+    ion_names = ('NA+', 'CL-', 'NA', 'CL')
+    ion_count = sum(name in ion_names for name in atom_names)
+
+    print(f'Loaded {number_of_frames} trajectory frames for {peptide}.')
+    print(f'Each frame contains {water_count} water beads and {ion_count} ion beads.')
+
+    viewer = py3Dmol.view(width=width, height=height)
+    viewer.addModelsAsFrames(trajectory_text, 'pdb')
+    viewer.setStyle({}, {})
+
+    class_colors = {
+        'charged': 'red',
+        'polar': 'orange',
+        'intermediate': 'blue',
+        'apolar': 'gray',
+    }
+    bead_styles = {}
+    for _, bead in bead_table.iterrows():
+        residue_name = str(bead['residue']).split()[0]
+        bead_name = str(bead['bead'])
+        bead_class = str(bead['class']).lower()
+        bead_styles[(residue_name, bead_name)] = bead_class
+
+    for (residue_name, bead_name), bead_class in bead_styles.items():
+        viewer.setStyle(
+            {'resn': residue_name, 'atom': bead_name},
+            {'sphere': {
+                'scale': 0.45,
+                'color': class_colors.get(bead_class, 'gray'),
+            }},
+        )
+
+    crystal_line = next(
+        (line for line in first_frame.splitlines() if line.startswith('CRYST1')),
+        None,
+    )
+    if crystal_line:
+        box_x = float(crystal_line[6:15])
+        box_y = float(crystal_line[15:24])
+        box_z = float(crystal_line[24:33])
+
+        # Draw only the 12 outer edges; addBox wireframe triangulates each face.
+        box_corners = [
+            {'x': 0.0,   'y': 0.0,   'z': 0.0},
+            {'x': box_x, 'y': 0.0,   'z': 0.0},
+            {'x': 0.0,   'y': box_y, 'z': 0.0},
+            {'x': box_x, 'y': box_y, 'z': 0.0},
+            {'x': 0.0,   'y': 0.0,   'z': box_z},
+            {'x': box_x, 'y': 0.0,   'z': box_z},
+            {'x': 0.0,   'y': box_y, 'z': box_z},
+            {'x': box_x, 'y': box_y, 'z': box_z},
+        ]
+        box_edges = [
+            (0, 1), (0, 2), (0, 4),
+            (1, 3), (1, 5), (2, 3),
+            (2, 6), (3, 7), (4, 5),
+            (4, 6), (5, 7), (6, 7),
+        ]
+        for start_index, end_index in box_edges:
+            viewer.addLine({
+                'start': box_corners[start_index],
+                'end': box_corners[end_index],
+                'color': 'black',
+                'linewidth': 2.0,
+            })
+
+    water_checkbox = widgets.Checkbox(
+        value=bool(show_water),
+        description='Show water beads',
+        indent=False,
+    )
+    ion_checkbox = widgets.Checkbox(
+        value=bool(show_ions and ion_count),
+        description=(
+            f'Show ion beads ({ion_count})'
+            if ion_count else 'Show ion beads (none present)'
+        ),
+        indent=False,
+        disabled=(ion_count == 0),
+    )
+
+    def update_solvent_visibility(change=None):
+        water_style = (
+            {'sphere': {'scale': 0.18, 'color': 'cyan', 'opacity': 0.35}}
+            if water_checkbox.value else {}
+        )
+        viewer.setStyle({'atom': 'W'}, water_style)
+
+        for ion_name in ion_names:
+            ion_style = {}
+            if ion_checkbox.value:
+                ion_style = {
+                    'sphere': {
+                        'scale': 0.55,
+                        'color': 'purple' if ion_name.startswith('NA') else 'green',
+                    }
+                }
+            viewer.setStyle({'atom': ion_name}, ion_style)
+        if change is not None:
+            viewer.update()
+
+    water_checkbox.observe(update_solvent_visibility, names='value')
+    ion_checkbox.observe(update_solvent_visibility, names='value')
+    update_solvent_visibility()
+
+    frame_slider = widgets.IntSlider(
+        value=0,
+        min=0,
+        max=number_of_frames - 1,
+        step=1,
+        description='Frame',
+        continuous_update=True,
+        readout=True,
+        layout=widgets.Layout(width='650px'),
+    )
+    frame_status = widgets.HTML(
+        value=f'<b>Frame 0 of {number_of_frames - 1}</b>',
+        layout=widgets.Layout(
+            min_width='130px',
+            margin='0 0 0 8px',
+        ),
+    )
+    play_controller = widgets.Play(
+        value=0,
+        min=0,
+        max=number_of_frames - 1,
+        step=1,
+        interval=frame_interval,
+        repeat=False,
+        show_repeat=True,
+    )
+    play_controller.add_class('martini-play-controller')
+    play_controller.layout = widgets.Layout(
+        width='184px',
+        min_width='184px',
+    )
+    widgets.jslink(
+        (play_controller, 'value'),
+        (frame_slider, 'value'),
+    )
+
+    playback_css = widgets.HTML(
+        value='''
+        <style>
+        .martini-play-controller {
+            display: flex !important;
+            align-items: center !important;
+            width: 184px !important;
+            min-width: 184px !important;
+            height: 36px !important;
+            overflow: visible !important;
+        }
+        .martini-play-controller button {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            flex: 0 0 42px !important;
+            min-width: 42px !important;
+            width: 42px !important;
+            height: 36px !important;
+            margin: 0 2px !important;
+            padding: 0 !important;
+            border: 1px solid #5f6368 !important;
+            color: white !important;
+            background: #3367d6 !important;
+            font-family: Arial, sans-serif !important;
+            font-size: 0 !important;
+            line-height: 36px !important;
+            vertical-align: middle !important;
+            position: relative !important;
+        }
+        .martini-play-controller button:hover {
+            background: #2851a3 !important;
+        }
+        .martini-play-controller button i {
+            display: none !important;
+        }
+        .martini-play-controller button::after {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            color: white !important;
+            font-family: Arial, sans-serif !important;
+            font-size: 19px !important;
+            font-style: normal !important;
+            line-height: 1 !important;
+            position: absolute !important;
+            inset: 0 !important;
+        }
+        .martini-play-controller button:nth-of-type(1)::after {
+            content: '▶' !important;
+        }
+        .martini-play-controller button:nth-of-type(2)::after {
+            content: '⏸' !important;
+        }
+        .martini-play-controller button:nth-of-type(3)::after {
+            content: '■' !important;
+        }
+        .martini-play-controller button:nth-of-type(4)::after {
+            content: '↻' !important;
+        }
+        </style>
+        '''
+    )
+
+    def update_frame(change):
+        if change['name'] == 'value':
+            viewer.setFrame(change['new'])
+            viewer.update()
+            frame_status.value = (
+                f'<b>Frame {change["new"]} of {number_of_frames - 1}</b>'
+            )
+
+    frame_slider.observe(update_frame, names='value')
+
+    viewer.setBackgroundColor('white')
+    viewer.setFrame(0)
+    viewer.zoomTo()
+
+    display(playback_css)
+    display(widgets.HBox(
+        [
+            widgets.HTML(
+                '<b>Playback:</b>',
+                layout=widgets.Layout(margin='0 8px 0 0'),
+            ),
+            play_controller,
+            frame_status,
+        ],
+        layout=widgets.Layout(
+            align_items='center',
+            overflow='visible',
+        ),
+    ))
+    display(frame_slider)
+    display(widgets.HBox([water_checkbox, ion_checkbox]))
+    viewer.show()
+    print('Drag to rotate, scroll to zoom, or use the labeled playback controls.')
+    print('Martini colors: charged=red, polar=orange, intermediate=blue, apolar=gray.')
+    print('Solvent colors: water=cyan, NA+=purple, CL-=green.')
+
+    return {
+        'viewer': viewer,
+        'play_controller': play_controller,
+        'frame_slider': frame_slider,
+        'water_checkbox': water_checkbox,
+        'ion_checkbox': ion_checkbox,
+        'number_of_frames': number_of_frames,
+        'viewer_file': viewer_file,
+    }

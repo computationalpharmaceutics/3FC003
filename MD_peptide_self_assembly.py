@@ -5,7 +5,7 @@ from typing import Union
 
 import pandas as pd
 from IPython.display import HTML, display
-
+import re
 
 import py3Dmol
 

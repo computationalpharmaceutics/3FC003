@@ -24,6 +24,7 @@ from openmm.app import ForceField, NoCutoff, PDBFile, Simulation
 # radii, not hard-sphere boundaries (Martini interactions are pair-dependent).
 PEPTIDE_BEAD_RADIUS_ANGSTROM = 2.35       # regular: sigma = 0.47 nm
 SMALL_PEPTIDE_BEAD_RADIUS_ANGSTROM = 2.15  # S bead: sigma = 0.43 nm
+WATER_BEAD_RADIUS_ANGSTROM = 2.35         # P4 water: sigma = 0.47 nm
 
 
 def _peptide_bead_radius(bead_type):
@@ -469,10 +470,14 @@ def visualize_solvated_system(water_file, bead_table):
     view.addModel(solvated_text, 'gro')
     view.setStyle({}, {})
 
-    # Water beads are small and translucent so the peptides remain visible.
+    # Use the Martini P4 bead size; transparency keeps peptides visible.
     view.setStyle(
         {'resn': 'W'},
-        {'sphere': {'scale': 0.15, 'color': 'cyan', 'opacity': 0.35}},
+        {'sphere': {
+            'radius': WATER_BEAD_RADIUS_ANGSTROM,
+            'color': 'cyan',
+            'opacity': 0.35,
+        }},
     )
 
     # Keep the peptide beads in the same Martini class colors as bead_table.
@@ -546,10 +551,14 @@ def visualize_counterions(water_file, bead_table, peptide):
     view.addModel(neutralized_text, 'gro')
     view.setStyle({}, {})
 
-    # Keep water small and translucent while retaining the Martini peptide colors.
+    # Keep full-size Martini water translucent to reveal peptides and ions.
     view.setStyle(
         {'resn': 'W'},
-        {'sphere': {'scale': 0.10, 'color': 'cyan', 'opacity': 0.12}},
+        {'sphere': {
+            'radius': WATER_BEAD_RADIUS_ANGSTROM,
+            'color': 'cyan',
+            'opacity': 0.12,
+        }},
     )
     for _, bead in bead_table.iterrows():
         residue_name = bead['residue'].split()[0]
@@ -911,7 +920,11 @@ def show_simulation_trajectory(
 
     def update_solvent_visibility(change=None):
         water_style = (
-            {'sphere': {'scale': 0.18, 'color': 'cyan', 'opacity': 0.35}}
+            {'sphere': {
+                'radius': WATER_BEAD_RADIUS_ANGSTROM,
+                'color': 'cyan',
+                'opacity': 0.35,
+            }}
             if water_checkbox.value else {}
         )
         viewer.setStyle({'atom': 'W'}, water_style)
@@ -1082,3 +1095,4 @@ def show_simulation_trajectory(
         'number_of_frames': number_of_frames,
         'viewer_file': viewer_file,
     }
+

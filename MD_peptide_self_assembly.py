@@ -684,6 +684,69 @@ def setup_all_tripeptides(cg_dir, python2, script_name ):
 
     return updated_topology_files
 
+
+def plot_minimization_energy(peptide, simulation_dir, minimization_name=None):
+    """Extract and plot the potential energy from a GROMACS minimization."""
+    simulation_dir = Path(simulation_dir)
+    minimization_name = minimization_name or f'{peptide}_min'
+
+    min_edr_file = simulation_dir / f'{minimization_name}.edr'
+    min_energy_file = simulation_dir / f'{minimization_name}_potential.xvg'
+    assert min_edr_file.is_file(), f'Energy file not found: {min_edr_file}'
+
+    command = [
+        'gmx', 'energy',
+        '-f', min_edr_file.name,
+        '-o', min_energy_file.name,
+    ]
+    print('Running:', ' '.join(command))
+    subprocess.run(
+        command,
+        input='Potential\n',
+        text=True,
+        cwd=simulation_dir,
+        check=True,
+    )
+
+    x_values = []
+    potential_energy = []
+    x_label = 'Minimization step'
+
+    for line in min_energy_file.read_text().splitlines():
+        if line.startswith('@ xaxis label'):
+            x_label = line.split('"')[1]
+        elif line and line[0] not in '#@&':
+            x_value, energy = map(float, line.split()[:2])
+            x_values.append(x_value)
+            potential_energy.append(energy)
+
+    assert potential_energy, f'No potential-energy values found in {min_energy_file}'
+
+    initial_energy = potential_energy[0]
+    final_energy = potential_energy[-1]
+    energy_decrease = initial_energy - final_energy
+
+    plt.figure(figsize=(8, 5))
+    plt.plot(x_values, potential_energy, color='tab:blue', linewidth=2)
+    plt.xlabel(x_label)
+    plt.ylabel(r'Potential energy (kJ mol$^{-1}$)')
+    plt.title(f'Energy minimization of {peptide}')
+    plt.grid(alpha=0.25)
+    plt.tight_layout()
+    plt.show()
+
+    print(f'Initial potential energy: {initial_energy:,.1f} kJ/mol')
+    print(f'Final potential energy:   {final_energy:,.1f} kJ/mol')
+    print(f'Energy decrease:          {energy_decrease:,.1f} kJ/mol')
+
+    return {
+        'initial_energy': initial_energy,
+        'final_energy': final_energy,
+        'energy_decrease': energy_decrease,
+        'energy_file': min_energy_file,
+    }
+
+
 def show_simulation_trajectory(
     peptide,
     simulation_dir,

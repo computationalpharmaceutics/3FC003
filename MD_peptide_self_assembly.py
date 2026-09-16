@@ -338,7 +338,7 @@ def show_peptide_comparison(peptide, cg_dir):
             {
                 "sphere": {
                     "color": color,
-                    "radius": 1.1,
+                    "radius": _peptide_bead_radius(bead_type),
                 }
             },
             viewer=(0, 1),
@@ -1095,4 +1095,3 @@ def show_simulation_trajectory(
         'number_of_frames': number_of_frames,
         'viewer_file': viewer_file,
     }
-

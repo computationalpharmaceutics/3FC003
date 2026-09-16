@@ -19,6 +19,20 @@ from openmm import Platform, VerletIntegrator, unit
 from openmm.app import ForceField, NoCutoff, PDBFile, Simulation
 
 
+# Consistent Martini 2.2 space-filling convention: half the like-bead LJ sigma.
+# py3Dmol reads GRO/PDB coordinates in angstroms. These are illustrative
+# radii, not hard-sphere boundaries (Martini interactions are pair-dependent).
+PEPTIDE_BEAD_RADIUS_ANGSTROM = 2.35       # regular: sigma = 0.47 nm
+SMALL_PEPTIDE_BEAD_RADIUS_ANGSTROM = 2.15  # S bead: sigma = 0.43 nm
+
+
+def _peptide_bead_radius(bead_type):
+    """Return a consistent display radius for a Martini 2.2 peptide bead."""
+    if str(bead_type).startswith('S'):
+        return SMALL_PEPTIDE_BEAD_RADIUS_ANGSTROM
+    return PEPTIDE_BEAD_RADIUS_ANGSTROM
+
+
 def minimize_peptides(coord_dir: Union[str, Path]) -> list[Path]:
     """Energy-minimize the 20 VMD-built Tyr-X-Tyr peptide structures.
 
@@ -386,7 +400,7 @@ def visualize_inserted_peptides(box_file, bead_table, peptide, n_peptides):
     view.addModel(gro_text, 'gro')
     view.setStyle({}, {
         'stick': {'radius': 0.12, 'color': 'gray'},
-        'sphere': {'scale': 0.25, 'color': 'gray'},
+        'sphere': {'radius': PEPTIDE_BEAD_RADIUS_ANGSTROM, 'color': 'gray'},
     })
 
     # Apply the class color from bead_table to every copy of each bead.
@@ -397,7 +411,10 @@ def visualize_inserted_peptides(box_file, bead_table, peptide, n_peptides):
             {'resn': residue_name, 'atom': bead['bead']},
             {
                 'stick': {'radius': 0.12, 'color': color},
-                'sphere': {'scale': 0.25, 'color': color},
+                'sphere': {
+                    'radius': _peptide_bead_radius(bead['Martini type']),
+                    'color': color,
+                },
             },
         )
 
@@ -466,7 +483,10 @@ def visualize_solvated_system(water_file, bead_table):
             {'resn': residue_name, 'atom': bead['bead']},
             {
                 'stick': {'radius': 0.12, 'color': color},
-                'sphere': {'scale': 0.25, 'color': color},
+                'sphere': {
+                    'radius': _peptide_bead_radius(bead['Martini type']),
+                    'color': color,
+                },
             },
         )
 
@@ -538,7 +558,10 @@ def visualize_counterions(water_file, bead_table, peptide):
             {'resn': residue_name, 'atom': bead['bead']},
             {
                 'stick': {'radius': 0.08, 'color': color},
-                'sphere': {'scale': 0.18, 'color': color},
+                'sphere': {
+                    'radius': _peptide_bead_radius(bead['Martini type']),
+                    'color': color,
+                },
             },
         )
 
@@ -823,13 +846,16 @@ def show_simulation_trajectory(
         residue_name = str(bead['residue']).split()[0]
         bead_name = str(bead['bead'])
         bead_class = str(bead['class']).lower()
-        bead_styles[(residue_name, bead_name)] = bead_class
+        bead_styles[(residue_name, bead_name)] = (
+            bead_class,
+            _peptide_bead_radius(bead['Martini type']),
+        )
 
-    for (residue_name, bead_name), bead_class in bead_styles.items():
+    for (residue_name, bead_name), (bead_class, radius) in bead_styles.items():
         viewer.setStyle(
             {'resn': residue_name, 'atom': bead_name},
             {'sphere': {
-                'scale': 0.45,
+                'radius': radius,
                 'color': class_colors.get(bead_class, 'gray'),
             }},
         )

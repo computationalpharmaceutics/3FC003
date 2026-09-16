@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from typing import Union
 
+
 import pandas as pd
 from IPython.display import HTML, display
 import re
@@ -12,6 +13,7 @@ import py3Dmol
 import subprocess
 
 import ipywidgets as widgets
+import matplotlib.pyplot as plt
 
 from openmm import Platform, VerletIntegrator, unit
 from openmm.app import ForceField, NoCutoff, PDBFile, Simulation
